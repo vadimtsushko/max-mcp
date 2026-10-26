@@ -1,15 +1,21 @@
 from enum import Enum
 from typing import Any
 
+from pydantic import BaseModel
+from pydantic_core import to_jsonable_python
+
 
 def _dump(obj: Any) -> dict[str, Any]:
     if obj is None:
         return {}
     if isinstance(obj, dict):
         return obj
-    dump = getattr(obj, "model_dump", None)
-    if callable(dump):
-        dumped = dump(mode="json", exclude_none=True)
+    if isinstance(obj, BaseModel):
+        # bytes (например, preview_data у фото) кодируем в base64: дефолтный
+        # utf8-режим pydantic падает на бинарных миниатюрах.
+        dumped = to_jsonable_python(
+            obj.model_dump(mode="python", exclude_none=True), bytes_mode="base64"
+        )
         return dumped if isinstance(dumped, dict) else {}
     try:
         return vars(obj)

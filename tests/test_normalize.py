@@ -82,3 +82,20 @@ def test_forward_link_is_not_a_reply() -> None:
     )
 
     assert message_to_dict(message)["reply_to_id"] is None
+
+
+def test_binary_bytes_do_not_break_dump() -> None:
+    from pydantic import BaseModel
+
+    class Photo(BaseModel):
+        preview_data: bytes | None = None
+
+    class Message(BaseModel):
+        id: int
+        attaches: list[Photo]
+
+    message = Message(id=1, attaches=[Photo(preview_data=b"\x00\x00\x00\x00\x00\x87")])
+
+    result = message_to_dict(message)
+
+    assert result["attaches"][0]["preview_data"] == "AAAAAACH"
